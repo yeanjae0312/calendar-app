@@ -36,7 +36,8 @@ export function TimeWheel({ value, onChange }: { value: string; onChange: (t: st
           </Pressable>
         ))}
       </View>
-      <View style={{ flexDirection: 'row' }}>
+      {/* 휠 항목이 영역 위로 삐져나와 위쪽 칩의 터치를 막지 않게 잘라 낸다 (wheel-picker #62). */}
+      <View testID="time-wheel" style={{ flexDirection: 'row', overflow: 'hidden' }}>
         <WheelPicker {...common} data={AP} value={w.ap} onValueChanged={({ item }) => set({ ap: item.value as 0 | 1 })} />
         <WheelPicker {...common} data={HOURS} value={w.h} onValueChanged={({ item }) => set({ h: item.value })} />
         <WheelPicker {...common} data={MINUTES} value={w.m} onValueChanged={({ item }) => set({ m: item.value })} />

@@ -19,6 +19,10 @@ export function keyToDate(k: DateKey): Date {
   return new Date(y, m - 1, d);
 }
 
+// 주소 파라미터처럼 밖에서 들어온 값이 실제로 있는 날짜인지 확인한다.
+export const isDateKey = (v: unknown): v is DateKey =>
+  typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) && toKey(keyToDate(v)) === v;
+
 const utc = (k: DateKey) => {
   const { y, m, d } = parseKey(k);
   return Date.UTC(y, m - 1, d);

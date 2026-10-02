@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Alert, Pressable, View } from 'react-native';
 import { addMinutes, DateKey, diffDays, formatDateChip, formatTime } from '../lib/date';
-import { CalEvent, makeEvent } from '../lib/events';
+import { CalEvent, makeEvent, Repeat, REPEAT_LABEL } from '../lib/events';
 import { iconOf, IconKey } from '../lib/icons';
 import { newId } from '../lib/id';
 import { useToday } from '../lib/useToday';
@@ -11,9 +11,11 @@ import { IconChip } from './IconChip';
 import { IconPicker } from './IconPicker';
 import { InlineCalendar } from './InlineCalendar';
 import { TimeWheel } from './TimeWheel';
-import { Field, Label, MainButton, Sheet, ToggleRow, Txt } from './ui';
+import { Field, Label, MainButton, Segmented, Sheet, ToggleRow, Txt } from './ui';
 
 export type EventDraft = CalEvent | { date: DateKey };
+
+const REPEATS = (['none', 'weekly', 'monthly', 'yearly'] as const).map((value) => ({ value, label: REPEAT_LABEL[value] }));
 
 type Panel = 'startDate' | 'startTime' | 'endDate' | 'endTime';
 
@@ -29,7 +31,7 @@ export function EventForm({ draft, onClose }: { draft: EventDraft; onClose: () =
   const [allDay, setAllDay] = useState(existing ? existing.time === null : true);
   const [time, setTime] = useState(existing?.time ?? '09:00');
   const [endTime, setEndTime] = useState(existing?.endTime ?? addMinutes(existing?.time ?? '09:00', 60));
-  const [yearly, setYearly] = useState(existing?.yearly ?? false);
+  const [repeat, setRepeat] = useState<Repeat>(existing?.repeat ?? 'none');
   const [icon, setIcon] = useState<IconKey>(existing?.icon ?? 'people');
   // 아이폰 캘린더처럼 달력과 휠 중 하나만 펼친다.
   const [open, setOpen] = useState<Panel | null>(null);
@@ -58,7 +60,7 @@ export function EventForm({ draft, onClose }: { draft: EventDraft; onClose: () =
   const changeEndTime = (t: string) => setEndTime(!sameDay || t > time ? t : addMinutes(time, 5));
 
   const save = () => {
-    const e = makeEvent({ id: existing?.id, title, date, endDate, allDay, time, endTime, icon, yearly }, newId);
+    const e = makeEvent({ id: existing?.id, title, date, endDate, allDay, time, endTime, icon, repeat }, newId);
     if (!e) return;
     saveEvent(e);
     onClose();
@@ -147,7 +149,8 @@ export function EventForm({ draft, onClose }: { draft: EventDraft; onClose: () =
         {open === 'endTime' && !allDay ? panel(<TimeWheel value={endTime} onChange={changeEndTime} />) : null}
       </View>
 
-      <ToggleRow label="매년 반복" value={yearly} onChange={setYearly} />
+      <Label>반복</Label>
+      <Segmented options={REPEATS} value={repeat} onChange={setRepeat} />
       <Label>{`아이콘 · ${iconOf(icon).label}`}</Label>
       <IconPicker value={icon} onChange={setIcon} />
       <MainButton title="저장" onPress={save} disabled={!title.trim()} />

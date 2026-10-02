@@ -1,13 +1,13 @@
 import { Pressable, View } from 'react-native';
 import type { DateKey } from '../lib/date';
-import { CalEvent, describeWhen } from '../lib/events';
+import { CalEvent, describeWhen, REPEAT_LABEL } from '../lib/events';
 import { useTheme } from '../theme/ThemeProvider';
 import { IconChip } from './IconChip';
 import { Txt } from './ui';
 
 type Props = {
   event: CalEvent;
-  // 보여 줄 회차의 시작일. 매년 반복 일정은 올해 날짜를 넣는다.
+  // 보여 줄 회차의 시작일. 반복 일정은 보여 줄 회차의 날짜를 넣는다.
   start?: DateKey;
   // 하루 일정에도 날짜를 붙인다 (다가오는 일정 목록).
   showDate?: boolean;
@@ -25,7 +25,7 @@ export function EventRow({ event, start, showDate, badge, right, onPress }: Prop
       <View style={{ flex: 1, minWidth: 0 }}>
         <Txt numberOfLines={1}>
           {event.title}
-          {event.yearly ? <Txt muted style={{ fontSize: 12 }}>{'  매년'}</Txt> : null}
+          {event.repeat !== 'none' ? <Txt muted style={{ fontSize: 12 }}>{`  ${REPEAT_LABEL[event.repeat]}`}</Txt> : null}
         </Txt>
         <Txt muted style={{ fontSize: 12 }}>{describeWhen(event, start ?? event.date, showDate)}</Txt>
       </View>

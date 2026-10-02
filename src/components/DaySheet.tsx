@@ -2,6 +2,7 @@ import { View } from 'react-native';
 import { DateKey, formatDay } from '../lib/date';
 import { CalEvent, coveringStart, dayLabel, eventsOn } from '../lib/events';
 import { holidayName } from '../lib/holidays';
+import { useHolidays } from '../store/Holidays';
 import { useTheme } from '../theme/ThemeProvider';
 import { EventRow } from './EventRow';
 import { GhostButton, Sheet, Txt } from './ui';
@@ -17,7 +18,7 @@ type Props = {
 export function DaySheet({ day, events, onClose, onAdd, onEdit }: Props) {
   const { c } = useTheme();
   const list = eventsOn(events, day);
-  const holiday = holidayName(day);
+  const holiday = holidayName(day, useHolidays());
   return (
     <Sheet onClose={onClose}>
       <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8 }}>

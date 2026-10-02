@@ -117,3 +117,21 @@ test('시작 날짜를 종료 날짜 뒤로 옮기면 종료 날짜도 따라간
   await fireEvent.press(screen.getByLabelText('10월 21일'));
   chipShows('종료 날짜', '2026. 10. 21.');
 });
+
+test('반복을 매월로 고르면 repeat가 monthly로 저장된다', async () => {
+  await open();
+  await fireEvent.changeText(screen.getByPlaceholderText('일정 제목'), '월세');
+  await fireEvent.press(screen.getByText('매월'));
+  await fireEvent.press(screen.getByText('저장'));
+  await waitFor(async () => expect((await saved())[0]).toMatchObject({ title: '월세', repeat: 'monthly' }));
+});
+
+// 휠 항목이 영역 위로 삐져나와 위쪽 시간 칩을 덮으면 폰에서 칩이 눌리지 않는다 (wheel-picker #62).
+test('시간 휠은 영역 밖으로 그려지지 않게 잘라 낸다', async () => {
+  await open();
+  await timed();
+  await fireEvent.press(chip('시작 시간'));
+  expect(screen.getByTestId('time-wheel')).toHaveStyle({ overflow: 'hidden' });
+  await fireEvent.press(chip('시작 시간'));
+  expect(screen.queryByTestId('time-wheel')).toBeNull();
+});

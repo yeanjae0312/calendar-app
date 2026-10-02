@@ -1,24 +1,52 @@
-import { CalEvent, countInMonth, coveringStart, dayLabel, describeWhen, eventsOn, makeEvent, occurrenceIn, upcoming } from './events';
+import { CalEvent, countInMonth, coveringStart, dayLabel, describeWhen, eventsOn, latestStart, makeEvent, nextStart, normalizeEvent, upcoming } from './events';
 
 const ev = (p: Partial<CalEvent>): CalEvent => ({
-  id: 'x', title: '일정', date: '2026-10-17', time: null, icon: 'people', yearly: false, ...p,
+  id: 'x', title: '일정', date: '2026-10-17', time: null, icon: 'people', repeat: 'none', ...p,
 });
 
-describe('occurrenceIn', () => {
-  test('한 번만 있는 일정은 그 해에만 있다', () => {
-    expect(occurrenceIn(ev({}), 2026)).toBe('2026-10-17');
-    expect(occurrenceIn(ev({}), 2027)).toBeNull();
+describe('latestStart / nextStart', () => {
+  test('반복 안 함은 시작일 하나뿐', () => {
+    expect(latestStart(ev({}), '2026-10-20')).toBe('2026-10-17');
+    expect(latestStart(ev({}), '2026-10-16')).toBeNull();
+    expect(nextStart(ev({}), '2026-10-17')).toBeNull();
   });
   test('매년 일정은 등록한 해부터 해마다 있다', () => {
-    const e = ev({ date: '2024-10-14', yearly: true });
-    expect(occurrenceIn(e, 2026)).toBe('2026-10-14');
-    expect(occurrenceIn(e, 2023)).toBeNull();
+    const e = ev({ date: '2024-10-14', repeat: 'yearly' });
+    expect(latestStart(e, '2026-12-01')).toBe('2026-10-14');
+    expect(latestStart(e, '2026-10-13')).toBe('2025-10-14');
+    expect(latestStart(e, '2023-12-01')).toBeNull();
   });
-  test('2월 29일 매년 일정은 평년에 2월 28일로 보인다', () => {
-    const e = ev({ date: '2024-02-29', yearly: true });
-    expect(occurrenceIn(e, 2025)).toBe('2025-02-28');
-    expect(occurrenceIn(e, 2028)).toBe('2028-02-29');
+  test('매주는 같은 요일', () => {
+    const e = ev({ date: '2026-10-01', repeat: 'weekly' });
+    expect(latestStart(e, '2026-10-14')).toBe('2026-10-08');
+    expect(latestStart(e, '2026-10-15')).toBe('2026-10-15');
+    expect(nextStart(e, '2026-10-15')).toBe('2026-10-22');
   });
+  test('매월 31일은 짧은 달에 말일, 다음 달엔 다시 31일', () => {
+    const e = ev({ date: '2027-01-31', repeat: 'monthly' });
+    expect(latestStart(e, '2027-02-28')).toBe('2027-02-28');
+    expect(latestStart(e, '2027-03-30')).toBe('2027-02-28');
+    expect(nextStart(e, '2027-02-28')).toBe('2027-03-31');
+    expect(latestStart(ev({ date: '2028-01-31', repeat: 'monthly' }), '2028-02-29')).toBe('2028-02-29');
+  });
+  test('매년 2월 29일은 평년에 2월 28일', () => {
+    const e = ev({ date: '2024-02-29', repeat: 'yearly' });
+    expect(latestStart(e, '2025-03-01')).toBe('2025-02-28');
+    expect(nextStart(e, '2027-03-01')).toBe('2028-02-29');
+  });
+  test('매주 반복 여러 날 일정은 회차마다 덮는다', () => {
+    const e = ev({ date: '2026-10-02', endDate: '2026-10-03', repeat: 'weekly' });
+    expect(eventsOn([e], '2026-10-10')).toHaveLength(1);
+    expect(eventsOn([e], '2026-10-11')).toHaveLength(0);
+    expect(countInMonth([e], 2026, 11)).toBe(1);
+  });
+});
+
+test('normalizeEvent는 예전 yearly를 repeat로 바꾼다', () => {
+  const { repeat: _r, ...old } = ev({});
+  expect(normalizeEvent({ ...old, yearly: true })).toEqual({ ...old, repeat: 'yearly' });
+  expect(normalizeEvent({ ...old, yearly: false })).toEqual({ ...old, repeat: 'none' });
+  expect(normalizeEvent({ ...old, repeat: 'weekly' })).toEqual({ ...old, repeat: 'weekly' });
 });
 
 test('eventsOn은 그날 일정을 하루 종일 먼저, 그다음 시간 순서로 준다', () => {
@@ -30,7 +58,7 @@ test('eventsOn은 그날 일정을 하루 종일 먼저, 그다음 시간 순서
 });
 
 test('countInMonth는 매년 일정도 센다', () => {
-  const list = [ev({}), ev({ date: '2020-10-01', yearly: true }), ev({ date: '2026-11-01' })];
+  const list = [ev({}), ev({ date: '2020-10-01', repeat: 'yearly' }), ev({ date: '2026-11-01' })];
   expect(countInMonth(list, 2026, 10)).toBe(2);
 });
 
@@ -39,7 +67,7 @@ describe('upcoming', () => {
   test('오늘 다음 날부터 가까운 순서로, 남은 날 수와 함께 준다', () => {
     const list = [
       ev({ id: 'past', date: '2026-10-01' }), ev({ id: 'today', date: today }),
-      ev({ id: 'far', date: '2026-11-21' }), ev({ id: 'bday', date: '2025-11-07', yearly: true }),
+      ev({ id: 'far', date: '2026-11-21' }), ev({ id: 'bday', date: '2025-11-07', repeat: 'yearly' }),
     ];
     expect(upcoming(list, today, 3)).toEqual([
       { event: list[3], date: '2026-11-07', daysLeft: 8 },
@@ -47,11 +75,11 @@ describe('upcoming', () => {
     ]);
   });
   test('올해 이미 지난 매년 일정은 내년 날짜로 준다', () => {
-    expect(upcoming([ev({ date: '2020-01-05', yearly: true })], today, 3)[0].date).toBe('2027-01-05');
+    expect(upcoming([ev({ date: '2020-01-05', repeat: 'yearly' })], today, 3)[0].date).toBe('2027-01-05');
   });
   test('몇 년 뒤 일정도 빠지지 않는다', () => {
     expect(upcoming([ev({ date: '2029-03-01' })], today, 3)[0].date).toBe('2029-03-01');
-    expect(upcoming([ev({ date: '2029-03-01', yearly: true })], today, 3)[0].date).toBe('2029-03-01');
+    expect(upcoming([ev({ date: '2029-03-01', repeat: 'yearly' })], today, 3)[0].date).toBe('2029-03-01');
   });
   test('개수를 제한한다', () => {
     const list = ['2026-11-01', '2026-11-02', '2026-11-03', '2026-11-04'].map((date, i) => ev({ id: String(i), date }));
@@ -60,10 +88,10 @@ describe('upcoming', () => {
 });
 
 describe('makeEvent', () => {
-  const base = { title: '  치과  ', date: '2026-10-02', allDay: false, time: '14:00', endTime: '15:00', icon: 'hospital' as const, yearly: false };
+  const base = { title: '  치과  ', date: '2026-10-02', allDay: false, time: '14:00', endTime: '15:00', icon: 'hospital' as const, repeat: 'none' as const };
   test('제목 앞뒤 공백을 지우고 새 id를 붙인다', () => {
     expect(makeEvent(base, () => 'new')).toEqual({
-      id: 'new', title: '치과', date: '2026-10-02', time: '14:00', endTime: '15:00', icon: 'hospital', yearly: false,
+      id: 'new', title: '치과', date: '2026-10-02', time: '14:00', endTime: '15:00', icon: 'hospital', repeat: 'none',
     });
   });
   test('하루 종일이면 시작과 종료 시간은 null이다', () => {
@@ -100,7 +128,7 @@ describe('여러 날 일정', () => {
   });
 
   test('매년 반복하면 해마다 같은 기간에 나오고, 연말에서 연초로 넘어가도 이어진다', () => {
-    const newYear = ev({ date: '2025-12-30', endDate: '2026-01-02', yearly: true });
+    const newYear = ev({ date: '2025-12-30', endDate: '2026-01-02', repeat: 'yearly' });
     expect(coveringStart(newYear, '2027-01-01')).toBe('2026-12-30');
     expect(coveringStart(newYear, '2026-12-31')).toBe('2026-12-30');
     expect(eventsOn([newYear], '2026-01-03')).toEqual([]);
@@ -130,9 +158,14 @@ describe('여러 날 일정', () => {
   });
 
   test('makeEvent는 종료 날짜를 시작 뒤일 때만 저장하고, 여러 날이면 종료 시간이 시작보다 일러도 된다', () => {
-    const base = { title: '캠핑', date: '2026-10-18', allDay: false, time: '14:00', endTime: '11:00', icon: 'people' as const, yearly: false };
+    const base = { title: '캠핑', date: '2026-10-18', allDay: false, time: '14:00', endTime: '11:00', icon: 'people' as const, repeat: 'none' as const };
     expect(makeEvent({ ...base, endDate: '2026-10-19' }, () => 'n')).toMatchObject({ endDate: '2026-10-19', endTime: '11:00' });
     expect(makeEvent({ ...base, endDate: '2026-10-18' }, () => 'n')).not.toHaveProperty('endDate');
     expect(makeEvent({ ...base, endDate: '2026-10-10' }, () => 'n')).not.toHaveProperty('endDate');
   });
+});
+
+test('normalizeEvent는 모르는 반복 값을 반복 안 함으로 바꾼다', () => {
+  const { repeat: _r, ...old } = ev({});
+  expect(normalizeEvent({ ...old, repeat: 'daily' as never })).toEqual({ ...old, repeat: 'none' });
 });

@@ -5,6 +5,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { AppDataProvider, useAppData } from '../src/store/AppData';
+import { HolidayProvider } from '../src/store/Holidays';
 import { ThemeProvider, useTheme } from '../src/theme/ThemeProvider';
 
 // 글꼴, 저장된 데이터, 저장된 테마를 모두 읽을 때까지 시작 화면을 유지한다.
@@ -33,9 +34,11 @@ export default function RootLayout() {
   if (!loaded) return null;
   return (
     <ThemeProvider>
-      <AppDataProvider>
-        <Inner />
-      </AppDataProvider>
+      <HolidayProvider>
+        <AppDataProvider>
+          <Inner />
+        </AppDataProvider>
+      </HolidayProvider>
     </ThemeProvider>
   );
 }

@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { addMonths, DateKey, monthGrid, parseKey } from '../lib/date';
 import { dayTone } from '../lib/holidays';
+import { useHolidays } from '../store/Holidays';
 import { useTheme } from '../theme/ThemeProvider';
 import { Txt } from './ui';
 
@@ -22,6 +23,7 @@ type Props = {
 // 일정 추가 창 안에 펼쳐지는 작은 달력. 팝업 대신 쓴다.
 export function InlineCalendar({ value, today, onChange, minDate, rangeFrom }: Props) {
   const { c } = useTheme();
+  const holidays = useHolidays();
   const v = parseKey(value);
   const [ym, setYm] = useState({ y: v.y, m: v.m });
   const move = (delta: number) => setYm((p) => addMonths(p.y, p.m, delta));
@@ -61,7 +63,7 @@ export function InlineCalendar({ value, today, onChange, minDate, rangeFrom }: P
           const isRangeStart = hasRange && k === rangeFrom;
           const selected = k === value || isRangeStart;
           const disabled = !!minDate && k < minDate;
-          const tone = dayTone(k);
+          const tone = dayTone(k, holidays);
           // 기간 띠: 가운데 날은 꽉 채우고, 시작 날은 오른쪽 반, 끝 날은 왼쪽 반만 칠한다.
           const band = !hasRange
             ? null

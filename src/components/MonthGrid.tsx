@@ -3,6 +3,7 @@ import { Pressable, View } from 'react-native';
 import { DateKey, monthGrid, parseKey } from '../lib/date';
 import { CalEvent, eventsOn, isMultiDay } from '../lib/events';
 import { dayTone } from '../lib/holidays';
+import { useHolidays } from '../store/Holidays';
 import { iconOf } from '../lib/icons';
 import { Segment, weekSegments } from '../lib/weekLayout';
 import { useTheme } from '../theme/ThemeProvider';
@@ -29,6 +30,7 @@ type Props = {
 
 export function MonthGrid({ y, m, events, today, selected, onPressDay }: Props) {
   const { c } = useTheme();
+  const holidays = useHolidays();
   const grid = monthGrid(y, m);
   const weeks = Array.from({ length: grid.length / 7 }, (_, i) => grid.slice(i * 7, i * 7 + 7));
 
@@ -79,7 +81,7 @@ export function MonthGrid({ y, m, events, today, selected, onPressDay }: Props) 
               const singles = all.filter((e) => !isMultiDay(e));
               const hiddenBars = segs.filter((s) => s.lane >= LANES && s.startCol <= col && s.endCol >= col).length;
               const more = hiddenBars + Math.max(0, singles.length - MAX_ICONS);
-              const tone = dayTone(k);
+              const tone = dayTone(k, holidays);
               const isToday = k === today;
               return (
                 <Pressable

@@ -37,10 +37,11 @@
           "backgroundColor": "#9ED6B8",
           "dark": {
             "image": "./assets/splash-icon.png",
-            "backgroundColor": "#141B17"
+            "backgroundColor": "#131615"
           }
         }
-      ]
+      ],
+      "expo-sharing"
     ]
   }
 }

@@ -1,6 +1,6 @@
 import { createContext, ReactNode, useContext, useEffect, useMemo, useState } from 'react';
 import type { DDay } from '../lib/dday';
-import type { CalEvent } from '../lib/events';
+import { CalEvent, normalizeEvent, StoredEvent } from '../lib/events';
 import { loadJSON, saveJSON } from './storage';
 
 type AppData = {
@@ -11,6 +11,7 @@ type AppData = {
   deleteEvent: (id: string) => void;
   saveDDay: (d: DDay) => void;
   deleteDDay: (id: string) => void;
+  replaceAll: (events: CalEvent[], ddays: DDay[]) => void;
 };
 
 const Ctx = createContext<AppData | null>(null);
@@ -26,8 +27,8 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const [writable, setWritable] = useState({ events: false, ddays: false });
 
   useEffect(() => {
-    Promise.all([loadJSON<CalEvent[]>('events', []), loadJSON<DDay[]>('ddays', [])]).then(([e, d]) => {
-      setEvents(e.value);
+    Promise.all([loadJSON<StoredEvent[]>('events', []), loadJSON<DDay[]>('ddays', [])]).then(([e, d]) => {
+      setEvents(e.value.map(normalizeEvent));
       setDDays(d.value);
       setWritable({ events: e.ok, ddays: d.ok });
       setReady(true);
@@ -51,6 +52,12 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       deleteEvent: (id) => setEvents((l) => l.filter((x) => x.id !== id)),
       saveDDay: (d) => setDDays((l) => upsert(l, d)),
       deleteDDay: (id) => setDDays((l) => l.filter((x) => x.id !== id)),
+      // 백업에서 되살릴 때. 읽기에 실패했던 저장소도 사용자가 고른 내용으로 덮어쓴다.
+      replaceAll: (e, d) => {
+        setEvents(e);
+        setDDays(d);
+        setWritable({ events: true, ddays: true });
+      },
     }),
     [ready, events, ddays],
   );

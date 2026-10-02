@@ -1,6 +1,6 @@
 import {
   addDays, addMinutes, addMonths, formatMonthDay, diffDays, formatDateChip, formatTimeRange, formatDay, formatDot, formatShort, formatTime, fromWheel, toWheel,
-  hhmmToDate, keyToDate, monthGrid, toHHMM, toKey,
+  hhmmToDate, isDateKey, keyToDate, monthGrid, toHHMM, toKey,
 } from './date';
 
 test('toKey는 로컬 날짜를 YYYY-MM-DD로 바꾼다', () => {
@@ -85,4 +85,14 @@ test('날짜에 날 수를 더하고 빼며, 달과 해를 넘긴다', () => {
 
 test('월일 표시', () => {
   expect(formatMonthDay('2026-10-16')).toBe('10월 16일');
+});
+
+test('isDateKey는 실제로 있는 YYYY-MM-DD 날짜만 받는다', () => {
+  expect(isDateKey('2027-05-05')).toBe(true);
+  expect(isDateKey('2028-02-29')).toBe(true);
+  expect(isDateKey('2027-02-29')).toBe(false);
+  expect(isDateKey('2027-13-01')).toBe(false);
+  expect(isDateKey('hello')).toBe(false);
+  expect(isDateKey(undefined)).toBe(false);
+  expect(isDateKey(['2027-05-05'])).toBe(false);
 });

@@ -33,7 +33,7 @@ test('캘린더에서 일정을 추가하면 폰 저장소에 저장된다', asy
   await waitFor(async () => {
     const saved = JSON.parse((await AsyncStorage.getItem('events')) ?? '[]');
     expect(saved).toHaveLength(1);
-    expect(saved[0]).toMatchObject({ title: '치과 검진', icon: 'hospital', time: null, yearly: false });
+    expect(saved[0]).toMatchObject({ title: '치과 검진', icon: 'hospital', time: null, repeat: 'none' });
   });
 });
 

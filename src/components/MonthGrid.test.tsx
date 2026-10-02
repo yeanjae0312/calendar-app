@@ -4,7 +4,7 @@ import type { IconKey } from '../lib/icons';
 import { ThemeProvider } from '../theme/ThemeProvider';
 import { MonthGrid } from './MonthGrid';
 
-const ev = (id: string, icon: IconKey): CalEvent => ({ id, title: id, date: '2026-10-17', time: null, icon, yearly: false });
+const ev = (id: string, icon: IconKey): CalEvent => ({ id, title: id, date: '2026-10-17', time: null, icon, repeat: 'none' });
 
 test('10월 날짜가 모두 나오고, 일정이 넷인 날은 아이콘 셋과 +1을 보여 준다', async () => {
   await render(
@@ -25,7 +25,7 @@ test('10월 날짜가 모두 나오고, 일정이 넷인 날은 아이콘 셋과
 
 test('여러 날 일정은 주마다 막대로 이어지고, 두 층을 넘으면 +N을 보여 주며, 누르면 그날을 연다', async () => {
   const multi = (id: string, title: string, date: string, endDate: string, icon: IconKey): CalEvent =>
-    ({ id, title, date, endDate, time: null, icon, yearly: false });
+    ({ id, title, date, endDate, time: null, icon, repeat: 'none' });
   const onPressDay = jest.fn();
   await render(
     <ThemeProvider>

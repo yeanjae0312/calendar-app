@@ -42,3 +42,6 @@ yarn-error.*
 
 # agent instructions
 AGENTS.md
+
+# 공휴일 API 키
+.env

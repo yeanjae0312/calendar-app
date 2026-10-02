@@ -4,7 +4,7 @@ import { ScrollView, View } from 'react-native';
 import { DDayCarousel } from '../src/components/DDayCarousel';
 import { EventRow } from '../src/components/EventRow';
 import { Card, Label, MainButton, RoundButton, Screen, Txt } from '../src/components/ui';
-import { formatShort, parseKey } from '../src/lib/date';
+import { DateKey, formatShort, parseKey } from '../src/lib/date';
 import { countInMonth, coveringStart, dayLabel, eventsOn, upcoming } from '../src/lib/events';
 import { useAppData } from '../src/store/AppData';
 import { useToday } from '../src/lib/useToday';
@@ -17,6 +17,7 @@ export default function Home() {
   const { y, m } = parseKey(today);
   const todays = eventsOn(events, today);
   const next = upcoming(events, today, 3);
+  const openDay = (day: DateKey) => router.push({ pathname: '/calendar', params: { day } });
 
   return (
     <Screen>
@@ -31,7 +32,7 @@ export default function Home() {
         <Card>
           <Label>{`오늘 · ${formatShort(today)}`}</Label>
           {todays.length === 0 ? <Txt muted>오늘은 일정이 없어요</Txt> : todays.map((e) => (
-              <EventRow key={e.id} event={e} start={coveringStart(e, today) ?? e.date} badge={dayLabel(e, today)} />
+              <EventRow key={e.id} event={e} start={coveringStart(e, today) ?? e.date} badge={dayLabel(e, today)} onPress={() => openDay(today)} />
             ))}
         </Card>
         <Card>
@@ -39,7 +40,7 @@ export default function Home() {
           {next.length === 0 ? (
             <Txt muted>예정된 일정이 없어요</Txt>
           ) : (
-            next.map((u) => <EventRow key={u.event.id} event={u.event} start={u.date} showDate right={`D-${u.daysLeft}`} />)
+            next.map((u) => <EventRow key={u.event.id} event={u.event} start={u.date} showDate right={`D-${u.daysLeft}`} onPress={() => openDay(u.date)} />)
           )}
         </Card>
         <Card style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>

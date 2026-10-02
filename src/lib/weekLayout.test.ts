@@ -3,7 +3,7 @@ import type { CalEvent } from './events';
 import { weekSegments } from './weekLayout';
 
 const ev = (id: string, date: string, endDate?: string): CalEvent => ({
-  id, title: id, date, endDate, time: null, icon: 'plane', yearly: false,
+  id, title: id, date, endDate, time: null, icon: 'plane', repeat: 'none',
 });
 
 const trip = ev('trip', '2026-10-16', '2026-10-19');
@@ -43,5 +43,14 @@ test('달 밖에서 시작한 일정은 그 달 첫날부터 이어진다고 표
   const cross = ev('cross', '2026-09-29', '2026-10-02');
   expect(weekSegments([cross], weeks[0])).toEqual([
     { event: cross, startCol: 4, endCol: 5, lane: 0, contLeft: true, contRight: false },
+  ]);
+});
+
+test('매주 반복하는 금~일 일정은 한 주에 두 회차의 막대로 나뉘고, 그 사이 평일은 비운다', () => {
+  const weekend: CalEvent = { ...ev('wk', '2026-10-02', '2026-10-04'), repeat: 'weekly' };
+  const w3 = weekSegments([weekend], weeks[2]); // 10월 11일(일) ~ 17일(토)
+  expect(w3).toEqual([
+    { event: weekend, startCol: 0, endCol: 0, lane: 0, contLeft: true, contRight: false },
+    { event: weekend, startCol: 5, endCol: 6, lane: 0, contLeft: false, contRight: true },
   ]);
 });

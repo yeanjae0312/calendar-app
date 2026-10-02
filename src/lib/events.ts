@@ -1,5 +1,9 @@
-import { addDays, DateKey, diffDays, formatMonthDay, formatShort, formatTime, formatTimeRange, isLeap, makeKey, parseKey } from './date';
+import { addDays, addMonths, DateKey, daysInMonth, diffDays, formatMonthDay, formatShort, formatTime, formatTimeRange, makeKey, parseKey } from './date';
 import type { IconKey } from './icons';
+
+export type Repeat = 'none' | 'weekly' | 'monthly' | 'yearly';
+
+export const REPEAT_LABEL: Record<Repeat, string> = { none: '안 함', weekly: '매주', monthly: '매월', yearly: '매년' };
 
 export type CalEvent = {
   id: string;
@@ -11,8 +15,19 @@ export type CalEvent = {
   // 예전에 저장한 일정에는 없을 수 있다.
   endTime?: string | null;
   icon: IconKey;
-  yearly: boolean;
+  repeat: Repeat;
 };
+
+// 예전에 저장한 일정은 repeat 대신 yearly를 가진다.
+export type StoredEvent = Omit<CalEvent, 'repeat'> & { repeat?: Repeat; yearly?: boolean };
+
+export const isRepeat = (v: unknown): v is Repeat => typeof v === 'string' && Object.prototype.hasOwnProperty.call(REPEAT_LABEL, v);
+
+// 모르는 반복 값은 반복 안 함으로 둔다.
+export function normalizeEvent({ yearly, ...rest }: StoredEvent): CalEvent {
+  const repeat = isRepeat(rest.repeat) ? rest.repeat : yearly === true ? 'yearly' : 'none';
+  return { ...rest, repeat };
+}
 
 export type Upcoming = { event: CalEvent; date: DateKey; daysLeft: number };
 
@@ -25,7 +40,7 @@ export type EventInput = {
   time: string;
   endTime: string;
   icon: IconKey;
-  yearly: boolean;
+  repeat: Repeat;
 };
 
 // 시작일 뒤로 며칠 더 이어지는지. 하루 일정은 0.
@@ -33,24 +48,46 @@ export const spanDays = (e: CalEvent) => (e.endDate && e.endDate > e.date ? diff
 
 export const isMultiDay = (e: CalEvent) => spanDays(e) > 0;
 
-// y년에 이 일정이 시작하는 날짜. 2월 29일 매년 일정은 평년에 2월 28일로 옮긴다.
-export function occurrenceIn(e: CalEvent, y: number): DateKey | null {
-  const o = parseKey(e.date);
-  if (!e.yearly) return o.y === y ? e.date : null;
-  if (y < o.y) return null;
-  const d = o.m === 2 && o.d === 29 && !isLeap(y) ? 28 : o.d;
-  return makeKey(y, o.m, d);
+// n번째(0부터) 회차의 시작일. 그 달에 없는 날짜(31일, 2월 29일)는 말일로 옮긴다.
+function nth(e: CalEvent, n: number): DateKey {
+  if (e.repeat === 'weekly') return addDays(e.date, 7 * n);
+  if (e.repeat === 'monthly' || e.repeat === 'yearly') {
+    const o = parseKey(e.date);
+    const { y, m } = addMonths(o.y, o.m, e.repeat === 'monthly' ? n : 12 * n);
+    return makeKey(y, m, Math.min(o.d, daysInMonth(y, m)));
+  }
+  return e.date;
 }
 
-// 그날을 덮는 회차의 시작일. 연말에 시작해 연초까지 이어지는 매년 일정은 전년도 회차를 확인한다.
+// 그날이나 그 전에 시작한 마지막 회차의 번호. 첫 회차 전이면 null.
+function indexOnOrBefore(e: CalEvent, day: DateKey): number | null {
+  if (day < e.date) return null;
+  if (e.repeat === 'none') return 0;
+  const o = parseKey(e.date);
+  const d = parseKey(day);
+  let n =
+    e.repeat === 'weekly' ? Math.floor(diffDays(e.date, day) / 7)
+    : e.repeat === 'monthly' ? (d.y - o.y) * 12 + (d.m - o.m)
+    : d.y - o.y;
+  while (n > 0 && nth(e, n) > day) n--;
+  return n;
+}
+
+export function latestStart(e: CalEvent, day: DateKey): DateKey | null {
+  const n = indexOnOrBefore(e, day);
+  return n === null ? null : nth(e, n);
+}
+
+export function nextStart(e: CalEvent, today: DateKey): DateKey | null {
+  if (e.date > today) return e.date;
+  if (e.repeat === 'none') return null;
+  return nth(e, indexOnOrBefore(e, today)! + 1);
+}
+
+// 그날을 덮는 회차의 시작일. 회차 길이가 모두 같아서 가장 최근 회차만 보면 된다.
 export function coveringStart(e: CalEvent, day: DateKey): DateKey | null {
-  const span = spanDays(e);
-  const y = parseKey(day).y;
-  for (const yy of [y, y - 1]) {
-    const s = occurrenceIn(e, yy);
-    if (s && s <= day && day <= addDays(s, span)) return s;
-  }
-  return null;
+  const s = latestStart(e, day);
+  return s && day <= addDays(s, spanDays(e)) ? s : null;
 }
 
 // 하루 종일(null)을 빈 문자열로 두면 시간 있는 일정보다 앞에 온다.
@@ -62,13 +99,11 @@ export function eventsOn(events: CalEvent[], day: DateKey): CalEvent[] {
 
 export function countInMonth(events: CalEvent[], y: number, m: number): number {
   const first = makeKey(y, m, 1);
-  const last = addDays(m === 12 ? makeKey(y + 1, 1, 1) : makeKey(y, m + 1, 1), -1);
-  return events.filter((e) =>
-    [y - 1, y].some((yy) => {
-      const s = occurrenceIn(e, yy);
-      return s !== null && s <= last && addDays(s, spanDays(e)) >= first;
-    }),
-  ).length;
+  const last = makeKey(y, m, daysInMonth(y, m));
+  return events.filter((e) => {
+    const s = latestStart(e, last);
+    return s !== null && addDays(s, spanDays(e)) >= first;
+  }).length;
 }
 
 export function dayLabel(e: CalEvent, day: DateKey): string | null {
@@ -91,21 +126,10 @@ export function describeWhen(e: CalEvent, start: DateKey = e.date, withDate = fa
   return `${formatMonthDay(start)} ${formatTime(e.time)} ~ ${endPart}`;
 }
 
-function nextOccurrence(e: CalEvent, today: DateKey): DateKey | null {
-  if (e.date > today) return e.date;
-  if (!e.yearly) return null;
-  const y = parseKey(today).y;
-  for (const yy of [y, y + 1]) {
-    const k = occurrenceIn(e, yy);
-    if (k && k > today) return k;
-  }
-  return null;
-}
-
 export function upcoming(events: CalEvent[], today: DateKey, limit: number): Upcoming[] {
   return events
     .flatMap((event) => {
-      const date = nextOccurrence(event, today);
+      const date = nextStart(event, today);
       return date ? [{ event, date, daysLeft: diffDays(today, date) }] : [];
     })
     .sort((a, b) => a.date.localeCompare(b.date) || byTime(a.event, b.event))
@@ -127,6 +151,6 @@ export function makeEvent(i: EventInput, id: () => string): CalEvent | null {
     time,
     endTime,
     icon: i.icon,
-    yearly: i.yearly,
+    repeat: i.repeat,
   };
 }
