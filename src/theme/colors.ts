@@ -17,10 +17,10 @@ export const light: Palette = {
 };
 
 export const dark: Palette = {
-  bg: '#141B17', surface: '#1D2621', fg: '#E4EEE7', muted: '#8FA396',
-  accent: '#6FB894', accentSoft: '#23372C', accentInk: '#A9E0C3',
-  sun: '#E59A9A', sat: '#93B4DE', line: '#26322B', dim: '#46554B', iconInk: '#111714', scrim: 'rgba(0,0,0,0.5)',
-  tints: { mint: '#5FAE9E', pink: '#D98C9C', butter: '#D7B665', sky: '#7FA2CC', lav: '#A08FCB', peach: '#D69A76', sage: '#8DB67A' },
+  bg: '#131615', surface: '#1C201E', fg: '#E8ECEA', muted: '#8E9893',
+  accent: '#86C9A6', accentSoft: '#232E29', accentInk: '#A8DCC0',
+  sun: '#F0A3A3', sat: '#9DBBE6', line: '#272C29', dim: '#434A46', iconInk: '#131615', scrim: 'rgba(0,0,0,0.55)',
+  tints: { mint: '#7CCBB7', pink: '#E8A3B1', butter: '#E6C77A', sky: '#93B6E2', lav: '#B4A3DE', peach: '#E6AE8A', sage: '#A3CC8E' },
 };
 
 export function resolveScheme(pref: ThemePref, system: string | null | undefined): 'light' | 'dark' {
