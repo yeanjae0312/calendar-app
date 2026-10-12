@@ -169,3 +169,21 @@ test('normalizeEvent는 모르는 반복 값을 반복 안 함으로 바꾼다',
   const { repeat: _r, ...old } = ev({});
   expect(normalizeEvent({ ...old, repeat: 'daily' as never })).toEqual({ ...old, repeat: 'none' });
 });
+
+describe('음력 매년', () => {
+  test('해마다 같은 음력 날짜의 양력 날에 온다', () => {
+    const e = ev({ date: '2026-09-25', repeat: 'lunar' }); // 음력 8월 15일
+    expect(latestStart(e, '2027-12-31')).toBe('2027-09-15');
+    expect(latestStart(e, '2027-09-14')).toBe('2026-09-25');
+    expect(nextStart(e, '2026-10-12')).toBe('2027-09-15');
+    expect(eventsOn([e], '2027-09-15')).toEqual([e]);
+  });
+  test('윤달에 등록하면 첫해는 그날, 다음 해부터는 평달 같은 날', () => {
+    const e = ev({ date: '2025-07-25', repeat: 'lunar' }); // 음력 윤6월 1일
+    expect(latestStart(e, '2025-08-01')).toBe('2025-07-25');
+    expect(nextStart(e, '2025-08-01')).toBe('2026-07-14');
+  });
+  test('지원 범위(2050년)를 넘으면 다음 회차가 없다', () => {
+    expect(nextStart(ev({ date: '2026-09-25', repeat: 'lunar' }), '2050-12-01')).toBeNull();
+  });
+});

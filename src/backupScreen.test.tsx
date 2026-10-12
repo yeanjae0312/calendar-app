@@ -29,11 +29,12 @@ test('백업을 내보내고, 잘못된 파일은 거절하고, 올바른 파일
   await waitFor(() => expect(alert).toHaveBeenCalledWith('가져오지 못했어요', '슈수슈수 백업 파일이 아니에요.'));
   expect(await stored()).toEqual([old]);
 
-  (pickBackupText as jest.Mock).mockResolvedValueOnce(JSON.stringify({ app: 'shusushusu', version: 1, events: [fresh], ddays: [] }));
+  (pickBackupText as jest.Mock).mockResolvedValueOnce(JSON.stringify({ app: 'shusushusu', version: 1, events: [fresh], ddays: [], days: { '2026-10-03': { sticker: '🥰' } } }));
   await fireEvent.press(screen.getByText('백업 가져오기'));
-  await waitFor(() => expect(alert).toHaveBeenLastCalledWith('백업으로 바꿀까요?', expect.any(String), expect.any(Array)));
+  await waitFor(() => expect(alert).toHaveBeenLastCalledWith('백업으로 바꿀까요?', expect.stringContaining('꾸민 날 1일'), expect.any(Array)));
   const buttons = alert.mock.calls.at(-1)![2] as AlertButton[];
   expect(await stored()).toEqual([old]);
   await act(async () => buttons.find((b) => b.text === '바꾸기')!.onPress!());
   await waitFor(async () => expect(await stored()).toEqual([fresh]));
+  await waitFor(async () => expect(JSON.parse((await AsyncStorage.getItem('days'))!)).toEqual({ '2026-10-03': { sticker: '🥰' } }));
 });

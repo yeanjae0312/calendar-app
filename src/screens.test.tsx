@@ -28,6 +28,7 @@ test('캘린더에서 일정을 추가하면 폰 저장소에 저장된다', asy
   await waitFor(() => expect(screen.getByLabelText('일정 추가')).toBeTruthy());
   await fireEvent.press(screen.getByLabelText('일정 추가'));
   await fireEvent.changeText(screen.getByPlaceholderText('일정 제목'), '치과 검진');
+  await fireEvent.press(screen.getByText('아이콘 더 보기'));
   await fireEvent.press(screen.getByLabelText('병원'));
   await fireEvent.press(screen.getByText('저장'));
   await waitFor(async () => {

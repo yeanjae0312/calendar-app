@@ -1,11 +1,11 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { ReactNode } from 'react';
+import { ReactNode, useContext } from 'react';
 import {
   KeyboardAvoidingView, Modal, Pressable, ScrollView, StyleProp, StyleSheet, Switch,
   Text, TextInput, TextInputProps, TextProps, useWindowDimensions, View, ViewStyle,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaInsetsContext, SafeAreaView } from 'react-native-safe-area-context';
 import { F } from '../theme/fonts';
 import { useTheme } from '../theme/ThemeProvider';
 
@@ -90,19 +90,22 @@ export function BackButton() {
 export function Sheet({ onClose, children }: { onClose: () => void; children: ReactNode }) {
   const { height } = useWindowDimensions();
   const { c } = useTheme();
+  // 키보드가 올라와도 창이 상태 표시줄(시간·배터리) 아래에서 멈추게 위쪽을 비운다. 공간이 모자라면 창 안 내용이 줄고 스크롤된다.
+  const top = useContext(SafeAreaInsetsContext)?.top ?? 0;
   return (
     <Modal visible transparent animationType="slide" onRequestClose={onClose}>
-      <View style={{ flex: 1, justifyContent: 'flex-end' }}>
+      <View testID="sheet-root" style={{ flex: 1, justifyContent: 'flex-end', paddingTop: top + 8 }}>
         <Pressable accessibilityLabel="닫기" style={[StyleSheet.absoluteFill, { backgroundColor: c.scrim }]} onPress={onClose} />
         {/* 화면 전체를 쓰는 Android에서도 키보드만큼 올라가도록 두 플랫폼 모두 padding을 쓴다. */}
-        <KeyboardAvoidingView behavior="padding">
+        <KeyboardAvoidingView behavior="padding" style={{ flexShrink: 1 }}>
           <SafeAreaView
             edges={['bottom']}
-            style={{ backgroundColor: c.surface, borderTopLeftRadius: 22, borderTopRightRadius: 22, maxHeight: height * 0.9 }}
+            style={{ backgroundColor: c.surface, borderTopLeftRadius: 22, borderTopRightRadius: 22, maxHeight: height * 0.9, flexShrink: 1 }}
           >
             <View style={{ alignSelf: 'center', width: 36, height: 4, borderRadius: 2, backgroundColor: c.dim, marginTop: 10 }} />
             <ScrollView
               testID="sheet-scroll"
+              style={{ flexShrink: 1 }}
               keyboardShouldPersistTaps="handled"
               contentContainerStyle={{ padding: 16, gap: 12 }}
             >
@@ -182,5 +185,20 @@ export function Segmented<T extends string | number>({
         );
       })}
     </View>
+  );
+}
+
+// 목록 아래의 "더 보기 / 접기" 버튼.
+export function FoldButton({ open, label, onPress }: { open: boolean; label: string; onPress: () => void }) {
+  const { c } = useTheme();
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityState={{ expanded: open }}
+      style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 2, paddingVertical: 4 }}
+    >
+      <Txt style={{ fontSize: 13, color: c.accentInk }}>{open ? '접기' : label}</Txt>
+      <MaterialCommunityIcons name={open ? 'chevron-up' : 'chevron-down'} size={16} color={c.accentInk} />
+    </Pressable>
   );
 }

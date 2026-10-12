@@ -53,6 +53,34 @@ test('replaceAll은 일정과 디데이를 통째로 바꾸고 저장한다', as
   await waitFor(async () => expect(JSON.parse((await AsyncStorage.getItem('ddays'))!)).toEqual([d]));
 });
 
+test('하루 꾸미기를 저장하고 다시 불러온다', async () => {
+  const first = await renderHook(() => useAppData(), { wrapper: AppDataProvider });
+  await waitFor(() => expect(first.result.current.ready).toBe(true));
+  await act(async () => first.result.current.toggleSticker('2026-10-09', '☀️'));
+  await act(async () => first.result.current.saveDay('2026-10-09', { memo: '낮잠' }));
+  await waitFor(async () =>
+    expect(JSON.parse((await AsyncStorage.getItem('days'))!)).toEqual({ '2026-10-09': { sticker: '☀️', memo: '낮잠' } }),
+  );
+  await first.unmount();
+  const second = await renderHook(() => useAppData(), { wrapper: AppDataProvider });
+  await waitFor(() => expect(second.result.current.ready).toBe(true));
+  expect(second.result.current.days).toEqual({ '2026-10-09': { sticker: '☀️', memo: '낮잠' } });
+});
+
+test('꾸미기 저장소를 읽지 못하면 빈 값으로 덮어쓰지 않는다', async () => {
+  await AsyncStorage.setItem('days', JSON.stringify({ '2026-10-09': { sticker: '☀️' } }));
+  jest.clearAllMocks();
+  const spy = jest.spyOn(AsyncStorage, 'getItem').mockImplementation(async (key: string) => {
+    if (key === 'days') throw new Error('locked');
+    return null;
+  });
+  const { result } = await renderHook(() => useAppData(), { wrapper: AppDataProvider });
+  await waitFor(() => expect(result.current.ready).toBe(true));
+  expect(AsyncStorage.setItem).not.toHaveBeenCalledWith('days', expect.anything());
+  spy.mockReset();
+  spy.mockImplementation(async () => null);
+});
+
 test('저장소를 읽지 못하면 기존 일정을 빈 목록으로 덮어쓰지 않는다', async () => {
   await AsyncStorage.setItem('events', JSON.stringify([ev]));
   jest.clearAllMocks();

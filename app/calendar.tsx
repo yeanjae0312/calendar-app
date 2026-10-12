@@ -1,7 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Animated, PanResponder, Pressable, useWindowDimensions, View } from 'react-native';
+import { Animated, Easing, PanResponder, Pressable, useWindowDimensions, View } from 'react-native';
 import { DaySheet } from '../src/components/DaySheet';
 import { EventDraft, EventForm } from '../src/components/EventForm';
 import { MonthGrid } from '../src/components/MonthGrid';
@@ -14,7 +14,7 @@ import { useTheme } from '../src/theme/ThemeProvider';
 
 export default function CalendarScreen() {
   const { c } = useTheme();
-  const { events } = useAppData();
+  const { events, days, saveDay, toggleSticker } = useAppData();
   const today = useToday();
   const t = parseKey(today);
   const params = useLocalSearchParams<{ day?: string }>();
@@ -34,7 +34,7 @@ export default function CalendarScreen() {
   // 지금 달을 d 방향으로 밀어 내보낸 뒤 달을 바꾼다. next가 없으면 바로 옆 달.
   const slide = useCallback(
     (d: -1 | 1, next?: { y: number; m: number }) => {
-      Animated.timing(tx, { toValue: -d * width, duration: 160, useNativeDriver: true }).start(() => {
+      Animated.timing(tx, { toValue: -d * width, duration: 180, easing: Easing.in(Easing.quad), useNativeDriver: true }).start(() => {
         setYm((p) => ({ ...(next ?? addMonths(p.y, p.m, d)), dir: d }));
       });
     },
@@ -45,12 +45,12 @@ export default function CalendarScreen() {
   useEffect(() => {
     if (!ym.dir) return;
     tx.setValue(ym.dir * width);
-    Animated.timing(tx, { toValue: 0, duration: 160, useNativeDriver: true }).start();
+    Animated.timing(tx, { toValue: 0, duration: 280, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
   }, [ym, tx, width]);
 
   // 달력을 좌우로 밀면 손가락을 따라오다가 이전 달과 다음 달로 넘어간다. 날짜 칸 누르기는 그대로 둔다.
   const swipe = useMemo(() => {
-    const back = () => Animated.spring(tx, { toValue: 0, useNativeDriver: true }).start();
+    const back = () => Animated.spring(tx, { toValue: 0, friction: 7, tension: 60, useNativeDriver: true }).start();
     return PanResponder.create({
       onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dx) > 15 && Math.abs(g.dx) > Math.abs(g.dy),
       onPanResponderMove: (_, g) => tx.setValue(g.dx),
@@ -62,6 +62,12 @@ export default function CalendarScreen() {
       onPanResponderTerminate: back,
     });
   }, [tx, slide]);
+
+  // 가운데서 멀어질수록 날짜가 흐려져서, 넘어가는 동안 두 달이 겹쳐 보이지 않는다.
+  const fade = useMemo(
+    () => tx.interpolate({ inputRange: [-width, 0, width], outputRange: [0, 1, 0], extrapolate: 'clamp' }),
+    [tx, width],
+  );
 
   const isThisMonth = ym.y === t.y && ym.m === t.m;
   const toThisMonth = () => slide((ym.y - t.y) * 12 + (ym.m - t.m) > 0 ? -1 : 1, { y: t.y, m: t.m });
@@ -95,10 +101,11 @@ export default function CalendarScreen() {
           </RoundButton>
         </View>
       </View>
-      <View style={{ overflow: 'hidden' }} {...swipe.panHandlers}>
-        <Animated.View style={{ transform: [{ translateX: tx }] }}>
-          <MonthGrid y={ym.y} m={ym.m} events={events} today={today} selected={day} onPressDay={setDay} />
-        </Animated.View>
+      <View {...swipe.panHandlers}>
+        <MonthGrid
+          y={ym.y} m={ym.m} events={events} days={days} today={today} selected={day} onPressDay={setDay}
+          bodyStyle={{ opacity: fade, transform: [{ translateX: tx }] }}
+        />
       </View>
       <View style={{ flex: 1 }} />
       <Pressable
@@ -112,7 +119,11 @@ export default function CalendarScreen() {
         <MaterialCommunityIcons name="plus" size={28} color={c.iconInk} />
       </Pressable>
       {day ? (
-        <DaySheet day={day} events={events} onClose={() => setDay(null)} onAdd={() => openForm({ date: day })} onEdit={(e) => openForm(e)} />
+        <DaySheet
+          key={day}
+          day={day} events={events} onClose={() => setDay(null)} onAdd={() => openForm({ date: day })} onEdit={(e) => openForm(e)}
+          deco={days[day]} onToggleSticker={(s) => toggleSticker(day, s)} onMemo={(t) => saveDay(day, { memo: t })}
+        />
       ) : null}
       {draft ? <EventForm draft={draft} onClose={() => setDraft(null)} /> : null}
     </Screen>

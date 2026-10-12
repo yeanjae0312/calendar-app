@@ -3,6 +3,7 @@ import { Alert, Pressable, View } from 'react-native';
 import { addMinutes, DateKey, diffDays, formatDateChip, formatTime } from '../lib/date';
 import { CalEvent, makeEvent, Repeat, REPEAT_LABEL } from '../lib/events';
 import { iconOf, IconKey } from '../lib/icons';
+import { lunarRepeatLabel } from '../lib/lunar';
 import { newId } from '../lib/id';
 import { useToday } from '../lib/useToday';
 import { useAppData } from '../store/AppData';
@@ -15,7 +16,11 @@ import { Field, Label, MainButton, Segmented, Sheet, ToggleRow, Txt } from './ui
 
 export type EventDraft = CalEvent | { date: DateKey };
 
-const REPEATS = (['none', 'weekly', 'monthly', 'yearly'] as const).map((value) => ({ value, label: REPEAT_LABEL[value] }));
+// 버튼 다섯 개가 한 줄에 들어가도록 음력 매년은 "음력"으로 줄여 보여 준다.
+const REPEATS = (['none', 'weekly', 'monthly', 'yearly', 'lunar'] as const).map((value) => ({
+  value,
+  label: value === 'lunar' ? '음력' : REPEAT_LABEL[value],
+}));
 
 type Panel = 'startDate' | 'startTime' | 'endDate' | 'endTime';
 
@@ -59,7 +64,11 @@ export function EventForm({ draft, onClose }: { draft: EventDraft; onClose: () =
   // 같은 날이면 종료는 시작보다 늦어야 한다. 더 이르게 고르면 시작 5분 뒤로 맞춘다.
   const changeEndTime = (t: string) => setEndTime(!sameDay || t > time ? t : addMinutes(time, 5));
 
+  // 음력으로 바꿀 수 없는 날짜(2050년 뒤)는 음력 반복이 영영 나타나지 않으므로 저장하지 않는다.
+  const lunarOk = repeat !== 'lunar' || lunarRepeatLabel(date) !== null;
+
   const save = () => {
+    if (!lunarOk) return;
     const e = makeEvent({ id: existing?.id, title, date, endDate, allDay, time, endTime, icon, repeat }, newId);
     if (!e) return;
     saveEvent(e);
@@ -151,9 +160,12 @@ export function EventForm({ draft, onClose }: { draft: EventDraft; onClose: () =
 
       <Label>반복</Label>
       <Segmented options={REPEATS} value={repeat} onChange={setRepeat} />
+      {repeat === 'lunar' ? (
+        <Txt style={{ fontSize: 13, color: c.accentInk, paddingHorizontal: 4 }}>{lunarRepeatLabel(date) ?? '이 날짜는 음력으로 바꿀 수 없어요'}</Txt>
+      ) : null}
       <Label>{`아이콘 · ${iconOf(icon).label}`}</Label>
       <IconPicker value={icon} onChange={setIcon} />
-      <MainButton title="저장" onPress={save} disabled={!title.trim()} />
+      <MainButton title="저장" onPress={save} disabled={!title.trim() || !lunarOk} />
       {existing ? (
         <Pressable onPress={remove} style={{ alignItems: 'center', padding: 6 }}>
           <Txt style={{ color: c.sun }}>일정 삭제</Txt>

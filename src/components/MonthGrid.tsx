@@ -1,12 +1,15 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { Pressable, View } from 'react-native';
+import type { ComponentProps } from 'react';
+import { Animated, Pressable, View } from 'react-native';
 import { DateKey, monthGrid, parseKey } from '../lib/date';
+import type { Days } from '../lib/days';
 import { CalEvent, eventsOn, isMultiDay } from '../lib/events';
 import { dayTone } from '../lib/holidays';
 import { useHolidays } from '../store/Holidays';
 import { iconOf } from '../lib/icons';
 import { Segment, weekSegments } from '../lib/weekLayout';
 import { useTheme } from '../theme/ThemeProvider';
+import { Emoji } from './Emoji';
 import { IconChip } from './IconChip';
 import { Txt } from './ui';
 
@@ -16,7 +19,7 @@ const NUM_H = 26;
 const BAR_H = 14;
 const BAR_STEP = BAR_H + 2;
 const LANES = 2; // 한 칸에 보여 줄 막대 층 수. 넘치면 "+N".
-const MAX_ICONS = 3;
+const MAX_ICONS = 3; // 더 보여 줄 게 있으면 하나를 "+N" 자리로 쓴다.
 const CELL_H = NUM_H + LANES * BAR_STEP + 20;
 
 type Props = {
@@ -26,9 +29,12 @@ type Props = {
   today: DateKey;
   selected: DateKey | null;
   onPressDay: (k: DateKey) => void;
+  days?: Days;
+  // 달을 넘길 때 날짜 칸에만 줄 움직임. 카드와 요일 줄은 제자리에 있다.
+  bodyStyle?: ComponentProps<typeof Animated.View>['style'];
 };
 
-export function MonthGrid({ y, m, events, today, selected, onPressDay }: Props) {
+export function MonthGrid({ y, m, events, today, selected, onPressDay, bodyStyle, days }: Props) {
   const { c } = useTheme();
   const holidays = useHolidays();
   const grid = monthGrid(y, m);
@@ -63,7 +69,7 @@ export function MonthGrid({ y, m, events, today, selected, onPressDay }: Props) 
   };
 
   return (
-    <View style={{ backgroundColor: c.surface, borderRadius: 18, padding: 6 }}>
+    <View testID="month-card" style={{ backgroundColor: c.surface, borderRadius: 18, padding: 6, overflow: 'hidden' }}>
       <View style={{ flexDirection: 'row', paddingBottom: 4 }}>
         {WEEK.map((w, i) => (
           <Txt key={w} style={{ flex: 1, textAlign: 'center', fontSize: 12, color: i === 0 ? c.sun : i === 6 ? c.sat : c.muted }}>
@@ -71,6 +77,7 @@ export function MonthGrid({ y, m, events, today, selected, onPressDay }: Props) 
           </Txt>
         ))}
       </View>
+      <Animated.View testID="month-body" style={bodyStyle}>
       {weeks.map((week, wi) => {
         const segs = weekSegments(events, week);
         return (
@@ -80,9 +87,11 @@ export function MonthGrid({ y, m, events, today, selected, onPressDay }: Props) 
               const all = eventsOn(events, k);
               const singles = all.filter((e) => !isMultiDay(e));
               const hiddenBars = segs.filter((s) => s.lane >= LANES && s.startCol <= col && s.endCol >= col).length;
-              const more = hiddenBars + Math.max(0, singles.length - MAX_ICONS);
+              const shown = singles.length <= MAX_ICONS && hiddenBars === 0 ? singles.length : MAX_ICONS - 1;
+              const more = hiddenBars + Math.max(0, singles.length - shown);
               const tone = dayTone(k, holidays);
               const isToday = k === today;
+              const sticker = days?.[k]?.sticker;
               return (
                 <Pressable
                   key={k}
@@ -102,10 +111,21 @@ export function MonthGrid({ y, m, events, today, selected, onPressDay }: Props) 
                       </Txt>
                     </View>
                   </View>
+                  {/* 하루 꾸미기 스티커는 일정과 상관없이 늘 칸 오른쪽 위에 둔다.
+                      좁은 폰에서 날짜 동그라미와 살짝 겹쳐도 가려지지 않게 위에 그리고, 글자 크기 설정으로 커지지 않게 한다. */}
+                  {sticker ? (
+                    <Emoji testID={`sticker-${k}`} size={10} style={{ position: 'absolute', top: 0, right: 0, zIndex: 1 }}>
+                      {sticker}
+                    </Emoji>
+                  ) : null}
                   <View style={{ height: LANES * BAR_STEP }} />
-                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', gap: 1, maxWidth: 34 }}>
-                    {singles.slice(0, MAX_ICONS).map((e) => (
-                      <IconChip key={e.id} icon={e.icon} size={13} />
+                  {/* 좁은 칸에서도 한 줄에 들어가도록 줄바꿈하지 않는다. 아이콘 셋, 또는 둘과 "+N". */}
+                  <View
+                    testID={`icons-${k}`}
+                    style={{ flexDirection: 'row', flexWrap: 'nowrap', justifyContent: 'center', alignItems: 'center', gap: 1, overflow: 'hidden' }}
+                  >
+                    {singles.slice(0, shown).map((e) => (
+                      <IconChip key={e.id} icon={e.icon} size={12} />
                     ))}
                     {more > 0 ? <Txt muted style={{ fontSize: 9, lineHeight: 13 }}>{`+${more}`}</Txt> : null}
                   </View>
@@ -118,6 +138,7 @@ export function MonthGrid({ y, m, events, today, selected, onPressDay }: Props) 
           </View>
         );
       })}
+      </Animated.View>
     </View>
   );
 }

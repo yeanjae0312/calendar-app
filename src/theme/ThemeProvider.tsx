@@ -1,7 +1,7 @@
 import { createContext, ReactNode, useContext, useEffect, useMemo, useState } from 'react';
 import { useColorScheme } from 'react-native';
 import { loadJSON, saveJSON } from '../store/storage';
-import { dark, light, Palette, resolveScheme, ThemePref } from './colors';
+import { ColorTheme, isColorTheme, Palette, paletteFor, resolveScheme, ThemePref } from './colors';
 
 type Theme = {
   ready: boolean;
@@ -9,6 +9,8 @@ type Theme = {
   scheme: 'light' | 'dark';
   pref: ThemePref;
   setPref: (p: ThemePref) => void;
+  colorTheme: ColorTheme;
+  setColorTheme: (t: ColorTheme) => void;
 };
 
 const Ctx = createContext<Theme | null>(null);
@@ -16,11 +18,14 @@ const Ctx = createContext<Theme | null>(null);
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const system = useColorScheme();
   const [pref, setPrefState] = useState<ThemePref>('system');
+  const [colorTheme, setColorThemeState] = useState<ColorTheme>('mint');
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    loadJSON<ThemePref>('theme', 'system').then((r) => {
-      setPrefState(r.value);
+    // 색 테마가 없거나 모르는 값이면 민트. 업데이트 전부터 쓰던 사람은 민트 테마로 시작한다(다크 바탕은 모든 테마 공통 회색).
+    Promise.all([loadJSON<ThemePref>('theme', 'system'), loadJSON<unknown>('colorTheme', 'mint')]).then(([t, ct]) => {
+      setPrefState(t.value);
+      setColorThemeState(isColorTheme(ct.value) ? ct.value : 'mint');
       setReady(true);
     });
   }, []);
@@ -29,15 +34,20 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const value = useMemo<Theme>(
     () => ({
       ready,
-      c: scheme === 'dark' ? dark : light,
+      c: paletteFor(colorTheme, scheme),
       scheme,
       pref,
       setPref: (p) => {
         setPrefState(p);
         saveJSON('theme', p);
       },
+      colorTheme,
+      setColorTheme: (t) => {
+        setColorThemeState(t);
+        saveJSON('colorTheme', t);
+      },
     }),
-    [ready, scheme, pref],
+    [ready, scheme, pref, colorTheme],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

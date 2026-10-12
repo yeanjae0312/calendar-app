@@ -1,9 +1,10 @@
 import { addDays, addMonths, DateKey, daysInMonth, diffDays, formatMonthDay, formatShort, formatTime, formatTimeRange, makeKey, parseKey } from './date';
 import type { IconKey } from './icons';
+import { fromLunar, toLunar } from './lunar';
 
-export type Repeat = 'none' | 'weekly' | 'monthly' | 'yearly';
+export type Repeat = 'none' | 'weekly' | 'monthly' | 'yearly' | 'lunar';
 
-export const REPEAT_LABEL: Record<Repeat, string> = { none: '안 함', weekly: '매주', monthly: '매월', yearly: '매년' };
+export const REPEAT_LABEL: Record<Repeat, string> = { none: '안 함', weekly: '매주', monthly: '매월', yearly: '매년', lunar: '음력 매년' };
 
 export type CalEvent = {
   id: string;
@@ -49,8 +50,14 @@ export const spanDays = (e: CalEvent) => (e.endDate && e.endDate > e.date ? diff
 export const isMultiDay = (e: CalEvent) => spanDays(e) > 0;
 
 // n번째(0부터) 회차의 시작일. 그 달에 없는 날짜(31일, 2월 29일)는 말일로 옮긴다.
-function nth(e: CalEvent, n: number): DateKey {
+// 음력은 같은 음력 월·일의 양력 날이고, 윤달은 이후 해에 평달로 지낸다. 바꿀 수 없는 해(2050년 뒤)는 null.
+function nth(e: CalEvent, n: number): DateKey | null {
+  if (n === 0) return e.date;
   if (e.repeat === 'weekly') return addDays(e.date, 7 * n);
+  if (e.repeat === 'lunar') {
+    const l = toLunar(e.date);
+    return l ? fromLunar(l.y + n, l.m, l.d) : null;
+  }
   if (e.repeat === 'monthly' || e.repeat === 'yearly') {
     const o = parseKey(e.date);
     const { y, m } = addMonths(o.y, o.m, e.repeat === 'monthly' ? n : 12 * n);
@@ -69,7 +76,10 @@ function indexOnOrBefore(e: CalEvent, day: DateKey): number | null {
     e.repeat === 'weekly' ? Math.floor(diffDays(e.date, day) / 7)
     : e.repeat === 'monthly' ? (d.y - o.y) * 12 + (d.m - o.m)
     : d.y - o.y;
-  while (n > 0 && nth(e, n) > day) n--;
+  // 음력 회차는 양력 해를 넘나들어서 앞뒤로 한 번씩 맞춘다. 없는 회차(null)는 아주 먼 미래로 친다.
+  const after = (i: number) => (nth(e, i) ?? '9999-12-31') > day;
+  while (n > 0 && after(n)) n--;
+  while (!after(n + 1)) n++;
   return n;
 }
 
@@ -78,6 +88,8 @@ export function latestStart(e: CalEvent, day: DateKey): DateKey | null {
   return n === null ? null : nth(e, n);
 }
 
+// 오늘 뒤의 다음 회차. null이면 더 올 회차가 없다는 뜻이다.
+// 반복 안 함이 이미 지났거나, 음력 반복이 바꿀 수 있는 범위(2050년)를 넘은 경우다.
 export function nextStart(e: CalEvent, today: DateKey): DateKey | null {
   if (e.date > today) return e.date;
   if (e.repeat === 'none') return null;

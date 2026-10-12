@@ -135,3 +135,58 @@ test('시간 휠은 영역 밖으로 그려지지 않게 잘라 낸다', async (
   await fireEvent.press(chip('시작 시간'));
   expect(screen.queryByTestId('time-wheel')).toBeNull();
 });
+
+test('반복을 음력으로 고르면 고른 날짜의 음력이 보이고 lunar로 저장된다', async () => {
+  await open(); // 2026-10-17 = 음력 9월 7일
+  await fireEvent.changeText(screen.getByPlaceholderText('일정 제목'), '엄마 생신');
+  expect(screen.queryByText('매년 음력 9월 7일에 반복돼요')).toBeNull();
+  await fireEvent.press(screen.getByText('음력'));
+  expect(screen.getByText('매년 음력 9월 7일에 반복돼요')).toBeTruthy();
+  await fireEvent.press(screen.getByText('저장'));
+  await waitFor(async () => expect((await saved())[0]).toMatchObject({ title: '엄마 생신', repeat: 'lunar' }));
+});
+
+test('음력으로 바꿀 수 없는 날짜(2050년 뒤)에 음력 반복을 고르면 저장할 수 없다', async () => {
+  const onClose = jest.fn();
+  await render(
+    <ThemeProvider>
+      <AppDataProvider>
+        <EventForm draft={{ date: '2051-03-01' }} onClose={onClose} />
+      </AppDataProvider>
+    </ThemeProvider>,
+  );
+  await fireEvent.changeText(screen.getByPlaceholderText('일정 제목'), '먼 미래');
+  await fireEvent.press(screen.getByText('음력'));
+  expect(screen.getByText('이 날짜는 음력으로 바꿀 수 없어요')).toBeTruthy();
+  await fireEvent.press(screen.getByText('저장'));
+  expect(onClose).not.toHaveBeenCalled();
+  expect(await saved()).toEqual([]);
+});
+
+test('아이콘은 처음에 한 줄만 보이고, 더 보기를 누르면 종류별로 모두 펼쳐지며 새 아이콘을 고를 수 있다', async () => {
+  await open();
+  expect(screen.queryByText('여행')).toBeNull();
+  expect(screen.queryByLabelText('캠핑')).toBeNull();
+  expect(screen.getByLabelText('약속')).toBeSelected();
+  await fireEvent.press(screen.getByText('아이콘 더 보기'));
+  for (const g of ['일상', '음식', '여가', '여행', '건강', '일·공부', '생활', '기념일']) expect(screen.getByText(g)).toBeTruthy();
+  await fireEvent.changeText(screen.getByPlaceholderText('일정 제목'), '캠핑');
+  await fireEvent.press(screen.getByLabelText('캠핑'));
+  await fireEvent.press(screen.getByText('접기'));
+  expect(screen.queryByText('여행')).toBeNull();
+  expect(screen.getByLabelText('캠핑')).toBeSelected();
+  await fireEvent.press(screen.getByText('저장'));
+  await waitFor(async () => expect((await saved())[0]).toMatchObject({ title: '캠핑', icon: 'tent' }));
+});
+
+test('윤달 날짜에 음력 반복을 고르면 다음 해부터는 평달에 반복된다고 알려 준다', async () => {
+  await render(
+    <ThemeProvider>
+      <AppDataProvider>
+        <EventForm draft={{ date: '2025-07-25' }} onClose={() => {}} />
+      </AppDataProvider>
+    </ThemeProvider>,
+  );
+  await fireEvent.press(screen.getByText('음력'));
+  expect(screen.getByText('매년 음력 6월 1일에 반복돼요 (첫해는 윤6월 1일)')).toBeTruthy();
+});
