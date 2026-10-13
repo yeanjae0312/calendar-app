@@ -1,12 +1,14 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Animated, Easing, PanResponder, Pressable, useWindowDimensions, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Alert, Animated, Easing, PanResponder, Pressable, useWindowDimensions, View } from 'react-native';
 import { DaySheet } from '../src/components/DaySheet';
 import { EventDraft, EventForm } from '../src/components/EventForm';
+import { MonthCard } from '../src/components/MonthCard';
 import { MonthGrid } from '../src/components/MonthGrid';
-import { BackButton, RoundButton, Screen, Txt } from '../src/components/ui';
+import { BackButton, MainButton, RoundButton, Screen, Sheet, Txt } from '../src/components/ui';
 import { addMonths, DateKey, isDateKey, makeKey, parseKey } from '../src/lib/date';
+import { shareCard } from '../src/lib/shareCard';
 import { swipeMonth } from '../src/lib/swipe';
 import { useAppData } from '../src/store/AppData';
 import { useToday } from '../src/lib/useToday';
@@ -27,6 +29,16 @@ export default function CalendarScreen() {
   });
   const [day, setDay] = useState<DateKey | null>(initial);
   const [draft, setDraft] = useState<EventDraft | null>(null);
+  const [showCard, setShowCard] = useState(false);
+  const cardRef = useRef<View>(null);
+
+  const share = async () => {
+    try {
+      await shareCard(cardRef);
+    } catch {
+      Alert.alert('이미지를 만들지 못했어요', '잠시 후 다시 시도해 주세요.');
+    }
+  };
 
   const { width } = useWindowDimensions();
   const [tx] = useState(() => new Animated.Value(0));
@@ -88,6 +100,9 @@ export default function CalendarScreen() {
           <Txt muted style={{ fontSize: 13 }}>{ym.y}</Txt>
         </Txt>
         <View style={{ flexDirection: 'row', gap: 8 }}>
+          <RoundButton label="이달 돌아보기" onPress={() => setShowCard(true)}>
+            <MaterialCommunityIcons name="image-filter-vintage" size={18} color={c.accentInk} />
+          </RoundButton>
           {isThisMonth ? null : (
             <RoundButton label="이번 달로" onPress={toThisMonth}>
               <MaterialCommunityIcons name="calendar-today" size={18} color={c.accentInk} />
@@ -126,6 +141,14 @@ export default function CalendarScreen() {
         />
       ) : null}
       {draft ? <EventForm draft={draft} onClose={() => setDraft(null)} /> : null}
+      {showCard ? (
+        <Sheet onClose={() => setShowCard(false)}>
+          <View style={{ alignItems: 'center' }}>
+            <MonthCard ref={cardRef} y={ym.y} m={ym.m} days={days} width={Math.min(width - 64, 300)} />
+          </View>
+          <MainButton title="공유하기" onPress={share} />
+        </Sheet>
+      ) : null}
     </Screen>
   );
 }
