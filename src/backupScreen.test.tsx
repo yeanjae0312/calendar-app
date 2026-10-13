@@ -21,12 +21,12 @@ test('백업을 내보내고, 잘못된 파일은 거절하고, 올바른 파일
   await fireEvent.press(await screen.findByText('백업 내보내기'));
   await waitFor(() => expect(shareBackup).toHaveBeenCalled());
   const [name, json] = (shareBackup as jest.Mock).mock.calls[0];
-  expect(name).toMatch(/^슈수슈수-백업-\d{4}-\d{2}-\d{2}\.json$/);
+  expect(name).toMatch(/^하루조각-백업-\d{4}-\d{2}-\d{2}\.json$/);
   expect(JSON.parse(json)).toMatchObject({ app: 'shusushusu', events: [old] });
 
   (pickBackupText as jest.Mock).mockResolvedValueOnce('{"hello":1}');
   await fireEvent.press(screen.getByText('백업 가져오기'));
-  await waitFor(() => expect(alert).toHaveBeenCalledWith('가져오지 못했어요', '슈수슈수 백업 파일이 아니에요.'));
+  await waitFor(() => expect(alert).toHaveBeenCalledWith('가져오지 못했어요', '하루조각 백업 파일이 아니에요.'));
   expect(await stored()).toEqual([old]);
 
   (pickBackupText as jest.Mock).mockResolvedValueOnce(JSON.stringify({ app: 'shusushusu', version: 1, events: [fresh], ddays: [], days: { '2026-10-03': { sticker: '🥰' } } }));

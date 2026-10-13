@@ -99,7 +99,7 @@ export default function Settings() {
           <Row label="백업 내보내기" value="파일로 저장" onPress={exportBackup} />
           <Row label="백업 가져오기" value="파일에서 되살리기" onPress={importBackup} />
         </Card>
-        <Txt muted style={{ textAlign: 'center', fontSize: 12 }}>{`슈수슈수 ${Constants.expoConfig?.version ?? ''}`}</Txt>
+        <Txt muted style={{ textAlign: 'center', fontSize: 12 }}>{`하루조각 ${Constants.expoConfig?.version ?? ''}`}</Txt>
       </ScrollView>
       {draft ? <DDayForm draft={draft} onClose={() => setDraft(null)} /> : null}
     </Screen>

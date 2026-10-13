@@ -10,7 +10,7 @@ test('내보낸 백업을 그대로 다시 읽는다', () => {
   expect(parseBackup(text)).toEqual({ ok: true, events: [ev], ddays: [dd], days });
 });
 
-test('파일 이름에 날짜가 들어간다', () => expect(backupFileName('2026-10-01')).toBe('슈수슈수-백업-2026-10-01.json'));
+test('파일 이름에 날짜가 들어간다', () => expect(backupFileName('2026-10-01')).toBe('하루조각-백업-2026-10-01.json'));
 
 test('예전 형식 일정(yearly)도 읽는다', () => {
   const { repeat: _r, ...old } = ev;
@@ -20,8 +20,8 @@ test('예전 형식 일정(yearly)도 읽는다', () => {
 
 test.each([
   ['not json', 'JSON'],
-  [JSON.stringify({ hello: 1 }), '슈수슈수 백업 파일이 아니에요'],
-  [JSON.stringify(null), '슈수슈수 백업 파일이 아니에요'],
+  [JSON.stringify({ hello: 1 }), '하루조각 백업 파일이 아니에요'],
+  [JSON.stringify(null), '하루조각 백업 파일이 아니에요'],
   [JSON.stringify({ app: 'shusushusu', version: 3, events: [], ddays: [] }), '새 버전'],
   [JSON.stringify({ app: 'shusushusu', version: 1, events: {}, ddays: [] }), '손상'],
   [JSON.stringify({ app: 'shusushusu', version: 1, events: [{ id: 'a' }], ddays: [] }), '손상'],

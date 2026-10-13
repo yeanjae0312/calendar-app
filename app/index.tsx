@@ -22,7 +22,7 @@ export default function Home() {
   return (
     <Screen>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Txt display style={{ fontSize: 24, color: c.accentInk }}>슈수슈수</Txt>
+        <Txt display style={{ fontSize: 24, color: c.accentInk }}>하루조각</Txt>
         <RoundButton label="설정" onPress={() => router.push('/settings')}>
           <MaterialCommunityIcons name="cog-outline" size={20} color={c.muted} />
         </RoundButton>

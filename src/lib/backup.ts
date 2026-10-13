@@ -19,7 +19,7 @@ export const makeBackup = (events: CalEvent[], ddays: DDay[], days: Days, now: D
   days,
 });
 
-export const backupFileName = (today: DateKey) => `슈수슈수-백업-${today}.json`;
+export const backupFileName = (today: DateKey) => `하루조각-백업-${today}.json`;
 
 type Rec = Record<string, unknown>;
 const isRec = (v: unknown): v is Rec => typeof v === 'object' && v !== null;
@@ -49,7 +49,7 @@ export function parseBackup(text: string): ParsedBackup {
   } catch {
     return { ok: false, error: '파일을 읽을 수 없어요. JSON 형식이 아니에요.' };
   }
-  if (!isRec(data) || data.app !== APP) return { ok: false, error: '슈수슈수 백업 파일이 아니에요.' };
+  if (!isRec(data) || data.app !== APP) return { ok: false, error: '하루조각 백업 파일이 아니에요.' };
   if (data.version !== 1 && data.version !== VERSION) return { ok: false, error: '새 버전 앱에서 만든 백업이에요. 앱을 업데이트해 주세요.' };
   const { events, ddays, days } = data;
   if (!Array.isArray(events) || !Array.isArray(ddays) || !events.every(isEvent) || !ddays.every(isDDay) || !isDays(days)) {
