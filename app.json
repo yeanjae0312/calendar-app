@@ -81,6 +81,13 @@
           ]
         }
       ]
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "e75f6a3b-2cbc-4310-9cad-f4cfd7443662"
+      }
+    },
+    "owner": "yeonjaelee"
   }
 }
