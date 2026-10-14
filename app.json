@@ -41,7 +41,46 @@
           }
         }
       ],
-      "expo-sharing"
+      "expo-sharing",
+      [
+        "react-native-android-widget",
+        {
+          "widgets": [
+            {
+              "name": "DDay",
+              "label": "디데이",
+              "description": "첫 번째 디데이를 크게 보여 줘요",
+              "minWidth": "110dp",
+              "minHeight": "110dp",
+              "targetCellWidth": 2,
+              "targetCellHeight": 2,
+              "updatePeriodMillis": 1800000
+            },
+            {
+              "name": "Today",
+              "label": "오늘 일정",
+              "description": "오늘 일정을 시간 순서로 보여 줘요",
+              "minWidth": "250dp",
+              "minHeight": "110dp",
+              "targetCellWidth": 4,
+              "targetCellHeight": 2,
+              "resizeMode": "horizontal|vertical",
+              "updatePeriodMillis": 1800000
+            },
+            {
+              "name": "Stickers",
+              "label": "이번 달 스티커",
+              "description": "이번 달 하루 꾸미기 스티커를 달력으로 보여 줘요",
+              "minWidth": "250dp",
+              "minHeight": "250dp",
+              "targetCellWidth": 4,
+              "targetCellHeight": 4,
+              "resizeMode": "horizontal|vertical",
+              "updatePeriodMillis": 1800000
+            }
+          ]
+        }
+      ]
     ]
   }
 }

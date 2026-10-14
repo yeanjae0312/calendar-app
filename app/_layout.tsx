@@ -7,6 +7,7 @@ import { useEffect } from 'react';
 import { AppDataProvider, useAppData } from '../src/store/AppData';
 import { HolidayProvider } from '../src/store/Holidays';
 import { ThemeProvider, useTheme } from '../src/theme/ThemeProvider';
+import { WidgetSync } from '../src/widgets/WidgetSync';
 
 // 글꼴, 저장된 데이터, 저장된 테마를 모두 읽을 때까지 시작 화면을 유지한다.
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -24,6 +25,7 @@ function Inner() {
   return (
     <>
       <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
+      <WidgetSync />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: c.bg } }} />
     </>
   );
