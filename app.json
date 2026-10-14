@@ -1,8 +1,8 @@
 {
   "expo": {
     "name": "하루조각",
-    "slug": "shusushusu",
-    "scheme": "shusushusu",
+    "slug": "yeonjae-calendar",
+    "scheme": "harujogak",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -11,7 +11,7 @@
       "supportsTablet": true
     },
     "android": {
-      "package": "com.yeonjae.shusushusu",
+      "package": "com.yeonjae.calendar",
       "adaptiveIcon": {
         "backgroundColor": "#9ED6B8",
         "foregroundImage": "./assets/android-icon-foreground.png",

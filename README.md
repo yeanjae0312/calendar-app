@@ -107,4 +107,4 @@ assets/              아이콘과 시작 화면 이미지
 - **공휴일.** 앱이 API에서 올해와 내년을 받아 오므로 해마다 손볼 필요는 없다. API에는 정부가 발표한 해까지만 있어서, 발표 전인 해는 일요일만 빨강으로 보이다가 발표되면 자동으로 채워진다. `src/data/holidays.ts`는 인터넷이 없을 때 쓰는 예비 표다.
 - **아이콘 추가.** `src/lib/icons.ts`의 `ICONS`에 한 줄 추가한다. 이름은 MaterialCommunityIcons에 있는 것이어야 하고, 색은 정해진 파스텔 색 중에서 고른다.
 - **앱 아이콘 다시 만들기.** `scripts/make-icons.mjs`를 고친 뒤 `node scripts/make-icons.mjs`를 실행한다.
-- **앱 이름과 ID.** 앱 이름은 `하루조각`(예전 이름 슈수슈수), Android 패키지는 `com.yeonjae.shusushusu`이고 `app.json`에 있다. 패키지 이름은 한 번 배포한 뒤에는 바꾸지 않는다. 바꾸면 폰이 다른 앱으로 인식한다.
+- **앱 이름과 ID.** 앱 이름은 `하루조각`(예전 이름 슈수슈수), Android 패키지는 `com.yeonjae.calendar`이고 `app.json`에 있다. 패키지 이름은 앱 이름과 상관없게 지었으니, 이름이 바뀌어도 그대로 둔다. 바꾸면 폰이 다른 앱으로 인식해서 데이터가 이어지지 않는다(예전 패키지 `com.yeonjae.shusushusu`로 설치한 앱의 데이터는 백업 내보내기 → 가져오기로 옮긴다). 백업 파일 안의 `app: 'shusushusu'` 값은 예전 백업을 읽기 위해 바꾸지 않는다.
