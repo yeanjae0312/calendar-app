@@ -45,7 +45,7 @@ export default function Home() {
         </Card>
         <Card style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
           <Txt muted>{`${m}월 일정`}</Txt>
-          <Txt display style={{ fontSize: 26 }}>{String(countInMonth(events, y, m))}</Txt>
+          <Txt display style={{ fontSize: 26, color: c.accentInk }}>{String(countInMonth(events, y, m))}</Txt>
           <Txt muted>개</Txt>
         </Card>
       </ScrollView>
