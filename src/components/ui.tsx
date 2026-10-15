@@ -1,11 +1,12 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { ReactNode, useContext } from 'react';
+import { ReactNode, useContext, useState } from 'react';
 import {
-  KeyboardAvoidingView, Modal, Pressable, ScrollView, StyleProp, StyleSheet, Switch,
+  Animated, KeyboardAvoidingView, Modal, PanResponder, Pressable, ScrollView, StyleProp, StyleSheet, Switch,
   Text, TextInput, TextInputProps, TextProps, useWindowDimensions, View, ViewStyle,
 } from 'react-native';
 import { SafeAreaInsetsContext, SafeAreaView } from 'react-native-safe-area-context';
+import { shouldCloseSheet } from '../lib/swipe';
 import { F } from '../theme/fonts';
 import { useTheme } from '../theme/ThemeProvider';
 
@@ -92,17 +93,34 @@ export function Sheet({ onClose, children }: { onClose: () => void; children: Re
   const { c } = useTheme();
   // 키보드가 올라와도 창이 상태 표시줄(시간·배터리) 아래에서 멈추게 위쪽을 비운다. 공간이 모자라면 창 안 내용이 줄고 스크롤된다.
   const top = useContext(SafeAreaInsetsContext)?.top ?? 0;
+  // 위쪽 손잡이를 잡고 아래로 끌면 창이 따라 내려오고, 충분히 내리면 닫힌다. 내용은 스크롤해야 해서 손잡이에만 건다.
+  const [ty] = useState(() => new Animated.Value(0));
+  const back = () => Animated.spring(ty, { toValue: 0, useNativeDriver: true }).start();
+  const drag = PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onMoveShouldSetPanResponder: (_, g) => g.dy > 4,
+    onPanResponderMove: (_, g) => ty.setValue(Math.max(0, g.dy)),
+    onPanResponderRelease: (_, g) => {
+      if (shouldCloseSheet(g.dy, g.vy)) Animated.timing(ty, { toValue: height, duration: 180, useNativeDriver: true }).start(onClose);
+      else back();
+    },
+    onPanResponderTerminate: back,
+  });
   return (
     <Modal visible transparent animationType="slide" onRequestClose={onClose}>
       <View testID="sheet-root" style={{ flex: 1, justifyContent: 'flex-end', paddingTop: top + 8 }}>
         <Pressable accessibilityLabel="닫기" style={[StyleSheet.absoluteFill, { backgroundColor: c.scrim }]} onPress={onClose} />
         {/* 화면 전체를 쓰는 Android에서도 키보드만큼 올라가도록 두 플랫폼 모두 padding을 쓴다. */}
         <KeyboardAvoidingView behavior="padding" style={{ flexShrink: 1 }}>
+          <Animated.View style={{ flexShrink: 1, transform: [{ translateY: ty }] }}>
           <SafeAreaView
             edges={['bottom']}
             style={{ backgroundColor: c.surface, borderTopLeftRadius: 22, borderTopRightRadius: 22, maxHeight: height * 0.9, flexShrink: 1 }}
           >
-            <View style={{ alignSelf: 'center', width: 36, height: 4, borderRadius: 2, backgroundColor: c.dim, marginTop: 10 }} />
+            {/* 손가락으로 잡기 쉽게 손잡이 막대 둘레를 넓게 잡는다. */}
+            <View testID="sheet-handle" {...drag.panHandlers} style={{ alignItems: 'center', paddingTop: 10, paddingBottom: 8 }}>
+              <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: c.dim }} />
+            </View>
             <ScrollView
               testID="sheet-scroll"
               style={{ flexShrink: 1 }}
@@ -112,6 +130,7 @@ export function Sheet({ onClose, children }: { onClose: () => void; children: Re
               {children}
             </ScrollView>
           </SafeAreaView>
+          </Animated.View>
         </KeyboardAvoidingView>
       </View>
     </Modal>

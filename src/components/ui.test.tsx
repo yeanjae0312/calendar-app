@@ -28,3 +28,16 @@ test('Sheet는 위쪽에 여백을 두고, 공간이 모자라면 내용이 줄�
   expect(screen.getByTestId('sheet-root')).toHaveStyle({ paddingTop: 8 });
   expect(screen.getByTestId('sheet-scroll')).toHaveStyle({ flexShrink: 1 });
 });
+
+test('Sheet 위쪽 손잡이 영역은 아래로 끌어 닫을 수 있게 터치를 받는다', async () => {
+  await render(
+    <ThemeProvider>
+      <Sheet onClose={() => {}}>
+        <Text>내용</Text>
+      </Sheet>
+    </ThemeProvider>,
+  );
+  const handle = screen.getByTestId('sheet-handle');
+  expect(handle.props.onResponderMove).toEqual(expect.any(Function));
+  expect(handle.props.onResponderRelease).toEqual(expect.any(Function));
+});
